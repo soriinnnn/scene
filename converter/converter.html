@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="alumne" content="Sorin Chiperi Arnaut">
+    <meta name="codi" content="u1987503">
+
+    <title>Conversor</title>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="converter.css" />
+    <script src="converter.js"></script>
+</head>
+
+<body>
+    <h1>Conversor de fitxers OBJ a JSON</h1>
+
+    <div class="card">
+        <label for="fileInput">Selecciona un fitxer:</label>
+        <input type="file" id="fileInput" accept=".obj" />
+
+        <button id="convertButton">Convertir a JSON</button>
+        <label for="output">Resultat (JSON):</label>
+        <textarea id="output" readonly></textarea>
+
+        <button id="copyButton">Copiar JSON</button>
+    </div>
+</body>
+
+</html>

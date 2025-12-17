@@ -1,0 +1,67 @@
+/*
+ * Alumne: Sorin Chiperi Arnaut
+ * Codi: u1987503
+ */
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#gameContainer {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    margin: 16px;
+    gap: 16px;
+}
+
+#playerCoordinates {
+    display: flex;
+    gap: 10px;
+    font-size: 16px;
+
+    & span {
+        font-weight: bold;
+    }
+}
+
+#settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 200px;
+
+    & label {
+        min-width: 120px;
+        font-size: 16px;
+    }
+
+    & input {
+        flex: 1;
+        cursor: pointer;
+    }
+}
+
+.mode-option,
+.shader-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+
+    & span {
+        min-width: 60px;
+    }
+
+    & label {
+        min-width: 60px;
+    }
+}
