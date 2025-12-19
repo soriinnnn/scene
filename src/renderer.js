@@ -17,6 +17,7 @@ class Renderer {
     #drawMode;
     #textures;
     #textureCount;
+    #textureScale;
 
     constructor(canvas) {
         this.#canvas = canvas;
@@ -27,6 +28,7 @@ class Renderer {
 		this.#loadedProgram = -1;
 		this.#textures = [];
 		this.#textureCount = 0;
+		this.#textureScale = 0;
 
         this.#getWebGLContext();
         this.#drawMode = this.#context.TRIANGLES;
@@ -38,6 +40,10 @@ class Renderer {
 
     getDrawMode() {
         return this.#drawMode;
+    }
+
+    getTextureScale() {
+        return this.#textureScale;
     }
 	
 	createProgram(vertexSrc, fragmentSrc) {
@@ -98,7 +104,7 @@ class Renderer {
             const normalMatrix = mat3.create();
 
             mat4.multiply(modelViewMatrix, viewMatrix, modelMatrix);
-            mat3.normalFromMat4(normalMatrix, modelMatrix);
+            mat3.normalFromMat4(normalMatrix, modelViewMatrix);
 
             this.#useProgram(object.shader());
             this.#setObjectColor(object.color());
@@ -113,6 +119,7 @@ class Renderer {
             if (object.hasTexture()) {
                 this.#setTexture(object.texture(), 0);
             }
+            this.#setTextureScale(this.#textureScale);
             this.#draw(object.mesh(), 3);
         });
     }
@@ -132,6 +139,10 @@ class Renderer {
             default:
                 console.log("Mode de dibuixat inexistent");
         }
+    }
+
+    setTextureScale(scale) {
+        this.#textureScale = scale;
     }
 
     /* ------------------------------ FUNCIONS PRIVADES ------------------------------ */
@@ -244,6 +255,10 @@ class Renderer {
 
     #setUseTexture(use) {
         this.#context.uniform1i(this.#programs[this.#loadedProgram].useTexture, use);
+    }
+
+    #setTextureScale(scale) {
+        this.#context.uniform1f(this.#programs[this.#loadedProgram].textureScale, scale);
     }
 
 	#initMeshData(model) {
@@ -377,6 +392,7 @@ class Renderer {
         }
         program.textureSampler = this.#context.getUniformLocation(program, "textureSampler");
         program.useTexture = this.#context.getUniformLocation(program, "useTexture");
+        program.textureScale = this.#context.getUniformLocation(program, "scale");
     }
 
     /**

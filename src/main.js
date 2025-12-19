@@ -31,6 +31,21 @@ function changeFramerate(event) {
     scene.setFrameLimit(value);
 }
 
+function changeTextureScale(event) {
+    const scaleValue = document.getElementById("scaleValue");
+    const value = parseFloat(event.target.value);
+    scaleValue.textContent = value.toFixed(1);
+    scene.setTextureScale(value);
+}
+
+function setupProceduralTextureSettings() {
+    const scaleSlider = document.getElementById("scaleSlider");
+
+    scaleSlider.value = scene.textureScale();
+    scaleSlider.addEventListener("input", changeTextureScale);
+    scaleSlider.disabled = false;
+}
+
 function rgbToHex(r, g, b) {
     const toHex = (n) => {
         const hex = Math.round(n * 255).toString(16);
@@ -216,6 +231,7 @@ function main() {
     setupRenderingModeSettings();
     setupProjectionSettings();
     setupLightSettings();
+    setupProceduralTextureSettings();
 }
 
 document.addEventListener("DOMContentLoaded", main);

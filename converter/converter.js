@@ -31,9 +31,9 @@ function getVertex(result, vertices, i) {
     let x = 0, y = 0, z = 0;
 
     if (i*3 + 2 < vertices.length) {
-        x = vertices[i*3];
+		x = vertices[i*3];
         y = vertices[i*3 + 1];
-        z = vertices[i*3 + 2];
+		z = vertices[i*3 + 2];
     }
     result.vertices.push(x);
     result.vertices.push(y);
@@ -60,6 +60,10 @@ function parseOBJ(text) {
 
         const parts = line.split(" ");
         const type = parts[0];
+		
+		if (parts.length > 4) {
+			parts.splice(4);
+		}
 
         if (type === "v") {
             for (let i = 1; i < parts.length; i++) {

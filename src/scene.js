@@ -63,7 +63,11 @@ class Scene {
     }
 
     drawMode() {
-        this.#graphics.getDrawMode();
+        return this.#graphics.getDrawMode();
+    }
+
+    textureScale() {
+        return this.#graphics.getTextureScale();
     }
 
     light(index) {
@@ -117,6 +121,19 @@ class Scene {
 
     setProjectionType(type) {
         this.#player.camera().setProjectionType(type);
+
+        if (type === "orthographic") {
+            const pos = this.#player.position();
+            this.#player.setPosition(
+                pos[0],
+                3,
+                pos[2]
+            );
+        }
+    }
+
+    setTextureScale(scale) {
+        this.#graphics.setTextureScale(scale);
     }
 
     /* ------------------------------ FUNCIONS PRIVADES ------------------------------ */
@@ -162,6 +179,7 @@ class Scene {
         object = this.#createObject(street);
         object.setPosition(0, -1, 0);
         object.setRotation(0, Math.PI, 0);
+        object.setScale(2, 1, 1);
         object.setTexture(this.#graphics.createTexture("https://raw.githubusercontent.com/soriinnnn/scene/main/models/street/street.jpg"));
         this.#objects.push(object);
 
@@ -203,27 +221,30 @@ class Scene {
         object.setPosition(0, 0, 0);
         object.setRotation(0, Math.PI/2, -Math.PI/3);
         object.scaleUniform(50);
-        object.setTexture(this.#graphics.createTexture("https://raw.githubusercontent.com/soriinnnn/scene/main/models/sky.jpg"));
+        object.setTexture(this.#graphics.createTexture("https://raw.githubusercontent.com/soriinnnn/scene/main/src/textures/sky.jpg"));
         this.#objects.push(object);
 
         object = this.#createObject(createGroundCube());
         object.setPosition(0, -0.1, 0);
         object.scaleUniform(5);
-        object.setTexture(this.#graphics.createTexture("https://raw.githubusercontent.com/soriinnnn/scene/main/models/dirt.png"));
+        object.setTexture(this.#graphics.createTexture("https://raw.githubusercontent.com/soriinnnn/scene/main/src/textures/dirt.png"));
         this.#objects.push(object);
 
         object = this.#createObject(createSphere(0.25, 128));
         object.setPosition(5.4, 5, 7);
+        object.setRotation(0, Math.PI/2, -Math.PI/3);
         object.setColor(1.0, 0.5, 0.1);
         this.#objects.push(object);
 
         object = this.#createObject(createSphere(0.5, 128));
         object.setPosition(-1, 8, 9);
+        object.setRotation(-Math.PI/3, -Math.PI/4, -Math.PI);
         object.setColor(0.8, 0.9, 1.0);
         this.#objects.push(object);
 
         object = this.#createObject(createSphere(1, 128));
         object.setPosition(3, 10, 11);
+        object.setRotation(-Math.PI/3, -Math.PI/2, -Math.PI);
         object.setColor(0.5, 0.9, 0.4);
         this.#objects.push(object);
     }

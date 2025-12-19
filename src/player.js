@@ -68,10 +68,10 @@ class Player {
         const right = this.#camera.getRightVector();
         let moveDirection = [0, 0, 0];
 
-        if (this.#input.isKeyPressed(InputManager.MOVEMENT_KEYS[0])) {
+        if (this.#input.isKeyPressed(InputManager.MOVEMENT_KEYS[0]) && this.#camera.projectionType() === "perspective") {
             vec3.add(moveDirection, moveDirection, forward);
         }
-        if (this.#input.isKeyPressed(InputManager.MOVEMENT_KEYS[1])) {
+        if (this.#input.isKeyPressed(InputManager.MOVEMENT_KEYS[1]) && this.#camera.projectionType() === "perspective") {
             vec3.subtract(moveDirection, moveDirection, forward);
         }
         if (this.#input.isKeyPressed(InputManager.MOVEMENT_KEYS[2])) {

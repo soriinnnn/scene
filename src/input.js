@@ -4,7 +4,7 @@
  */
 
 class InputManager {
-    static MOVEMENT_KEYS = ["w", "s", "a", "d", " "];
+    static MOVEMENT_KEYS = ["w", "s", "a", "d"];
 
     #pressedKeys;
     #canvasFocus;
