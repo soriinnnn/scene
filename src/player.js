@@ -35,20 +35,8 @@ class Player {
         return this.#camera;
     }
 
-    getBoundingBox() {
-        const pos = this.position();
-        const min = [
-            pos[0] - this.#playerWidth / 2,
-            pos[1] - this.#playerHeight,
-            pos[2] - this.#playerWidth / 2
-        ];
-        const max = [
-            pos[0] + this.#playerWidth / 2,
-            pos[1],
-            pos[2] + this.#playerWidth / 2
-        ];
-
-        return {min, max};
+    sensitivity() {
+        return this.#cameraSensitivity[0];
     }
 
     setPosition(x, y, z) {

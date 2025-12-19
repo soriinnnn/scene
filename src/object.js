@@ -6,6 +6,7 @@
 class Object {
     #meshId;
     #shaderId;
+    #textureId;
     #size;
     #position;
     #rotation;
@@ -15,6 +16,7 @@ class Object {
     constructor(mesh, shader, width, depth, height) {
         this.#meshId = mesh;
         this.#shaderId = shader;
+        this.#textureId = -1;
         this.#size = [width, height, depth];
         this.#position = [0, 0, 0];
         this.#rotation = [0, 0, 0];
@@ -64,6 +66,14 @@ class Object {
 
     shader() {
         return this.#shaderId;
+    }
+
+    texture() {
+        return this.#textureId;
+    }
+
+    hasTexture() {
+        return this.#textureId >= 0;
     }
 
     translate(dx, dy, dz) {
@@ -132,6 +142,10 @@ class Object {
 
     setShader(shader) {
         this.#shaderId = shader;
+    }
+
+    setTexture(textureId) {
+        this.#textureId = textureId;
     }
 
 }

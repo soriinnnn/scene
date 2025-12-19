@@ -11,6 +11,9 @@ class Camera {
     #fov;
     #near;
     #far;
+    #projectionType;
+    #orthoWidth;
+    #orthoHeight;
 
     constructor(canvas) {
         this.#eye = [0, 0, 0];
@@ -20,6 +23,9 @@ class Camera {
         this.#fov = this.#degreesToRadians(45);
         this.#near = 0.1;
         this.#far = 100.0;
+        this.#projectionType = "perspective";
+        this.#orthoWidth = 10.0;
+        this.#orthoHeight = this.#orthoWidth / this.#aspect;
     }
 
     viewMatrix() {
@@ -42,13 +48,30 @@ class Camera {
     }
 
     projectionMatrix() {
-        return mat4.perspective(
-            mat4.create(),
-            this.#fov,
-            this.#aspect,
-            this.#near,
-            this.#far
-        );
+        if (this.#projectionType === "orthographic") {
+            return mat4.ortho(
+                mat4.create(),
+                -this.#orthoWidth / 2,
+                this.#orthoWidth / 2,
+                -this.#orthoHeight / 2,
+                this.#orthoHeight / 2,
+                this.#near,
+                this.#far
+            );
+        }
+        else {
+            return mat4.perspective(
+                mat4.create(),
+                this.#fov,
+                this.#aspect,
+                this.#near,
+                this.#far
+            );
+        }
+    }
+
+    projectionType() {
+        return this.#projectionType;
     }
 
     position() {
@@ -94,6 +117,12 @@ class Camera {
             0,
             Math.cos(this.#yaw - Math.PI/2)
         ];
+    }
+
+    setProjectionType(type) {
+        if (type === "perspective" || type === "orthographic") {
+            this.#projectionType = type;
+        }
     }
 
     /* ------------------------------ FUNCIONS PRIVADES ------------------------------ */

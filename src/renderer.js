@@ -4,6 +4,9 @@
  */
 
 class Renderer {
+    static TOTAL_LIGHTS = 3;
+    static #DEFAULT_SHININESS = 32.0;
+
     #canvas;
     #context;
     #programs;
@@ -12,8 +15,8 @@ class Renderer {
     #meshCount;
     #loadedProgram;
     #drawMode;
-    #textures;          // Sense utilitzar...
-    #textureCount;      // Sense utilitzar...
+    #textures;
+    #textureCount;
 
     constructor(canvas) {
         this.#canvas = canvas;
@@ -31,6 +34,10 @@ class Renderer {
         this.#context.viewport(0, 0, this.#canvas.width, this.#canvas.height);
         this.#context.enable(this.#context.DEPTH_TEST);
         this.#context.enable(this.#context.CULL_FACE);
+    }
+
+    getDrawMode() {
+        return this.#drawMode;
     }
 	
 	createProgram(vertexSrc, fragmentSrc) {
@@ -51,24 +58,37 @@ class Renderer {
 		return this.#meshCount-1;
 	}
 
-	clear() {
-        this.#context.clear(this.#context.COLOR_BUFFER_BIT | this.#context.DEPTH_BUFFER_BIT);
-	}
+    createTexture(texUrl) {
+        const texture = this.#context.createTexture();
+        this.#context.bindTexture(this.#context.TEXTURE_2D, texture);
 
-	setDrawMode(mode) {
-	    switch (mode) {
-            case "NORMAL":
-                this.#drawMode = this.#context.TRIANGLES;
-                break;
-            case "WIREFRAME":
-                this.#drawMode = this.#context.LINE_STRIP;
-                break;
-            default:
-                console.log("Mode de dibuixat inexistent");
-	    }
-	}
+        const image = new Image();
+        image.onload = () => {
+            this.#context.bindTexture(this.#context.TEXTURE_2D, texture);
+            this.#context.texImage2D(
+                this.#context.TEXTURE_2D,
+                0,
+                this.#context.RGBA,
+                this.#context.RGBA,
+                this.#context.UNSIGNED_BYTE,
+                image
+            );
 
-    drawObjects(objects, camera) {
+            this.#context.texParameteri(this.#context.TEXTURE_2D, this.#context.TEXTURE_MIN_FILTER, this.#context.NEAREST_MIPMAP_LINEAR);
+            this.#context.texParameteri(this.#context.TEXTURE_2D, this.#context.TEXTURE_MAG_FILTER, this.#context.NEAREST);
+            this.#context.texParameteri(this.#context.TEXTURE_2D, this.#context.TEXTURE_WRAP_S, this.#context.REPEAT);
+            this.#context.texParameteri(this.#context.TEXTURE_2D, this.#context.TEXTURE_WRAP_T, this.#context.REPEAT);
+            this.#context.generateMipmap(this.#context.TEXTURE_2D);
+        };
+        image.crossOrigin = "anonymous";
+        image.src = texUrl;
+        this.#textures.push(texture);
+        this.#textureCount++;
+
+        return this.#textureCount-1;
+    }
+
+    drawObjects(objects, lights, camera) {
         const viewMatrix = camera.viewMatrix();
         const projectionMatrix = camera.projectionMatrix();
         const modelViewMatrix = mat4.create();
@@ -85,23 +105,36 @@ class Renderer {
             this.#setModelViewMatrix(modelViewMatrix);
             this.#setNormalMatrix(normalMatrix);
             this.#setProjectionMatrix(projectionMatrix);
+            this.#setShininess(Renderer.#DEFAULT_SHININESS);
+            for (let i = 0; i < Renderer.TOTAL_LIGHTS; i++) {
+                this.#setLight(lights[i], i);
+            }
+            this.#setUseTexture(object.hasTexture());
+            if (object.hasTexture()) {
+                this.#setTexture(object.texture(), 0);
+            }
             this.#draw(object.mesh(), 3);
         });
     }
 
-    /* ------------------------------ FUNCIONS PRIVADES ------------------------------ */
+    clear() {
+        this.#context.clear(this.#context.COLOR_BUFFER_BIT | this.#context.DEPTH_BUFFER_BIT);
+    }
 
-    #getOrthoProjectionMatrix(width, height) {
-        return mat4.ortho(
-            mat4.create(),
-            -width/2,
-            width/2,
-            -height/2,
-            height/2,
-            -1.0,
-            1.0
-        );
-    };
+    setDrawMode(mode) {
+        switch (mode) {
+            case "SOLID":
+                this.#drawMode = this.#context.TRIANGLES;
+                break;
+            case "WIREFRAME":
+                this.#drawMode = this.#context.LINES;
+                break;
+            default:
+                console.log("Mode de dibuixat inexistent");
+        }
+    }
+
+    /* ------------------------------ FUNCIONS PRIVADES ------------------------------ */
 
     #draw(mesh, dimensions) {
         this.#bindAttribute(
@@ -138,6 +171,15 @@ class Renderer {
         );
     }
 
+    #bindAttribute(attribute, buffer, size, type) {
+        if (!buffer) {
+            return;
+        }
+
+        this.#context.bindBuffer(this.#context.ARRAY_BUFFER, buffer);
+        this.#context.vertexAttribPointer(attribute, size, type, false, 0, 0);
+    }
+
     #setModelViewMatrix(matrix) {
         this.#context.uniformMatrix4fv(
             this.#programs[this.#loadedProgram].modelViewMatrix,
@@ -169,20 +211,39 @@ class Renderer {
         );
     }
 
-    #bindAttribute(attribute, buffer, size, type) {
-        if (!buffer) {
-            return;
+    #setLight(lightData, index) {
+        if (index < 0 || index >= Renderer.TOTAL_LIGHTS) {
+            throw "Font de llum inexistent";
         }
 
-        this.#context.bindBuffer(this.#context.ARRAY_BUFFER, buffer);
-        this.#context.vertexAttribPointer(
-            attribute,
-            size,
-            type,
-            false,
-            0,
-            0
+        const program = this.#programs[this.#loadedProgram];
+        this.#context.uniform3fv(program.lights[index].position, lightData.position);
+        this.#context.uniform3fv(program.lights[index].la, lightData.la);
+        this.#context.uniform3fv(program.lights[index].ld, lightData.ld);
+        this.#context.uniform3fv(program.lights[index].ls, lightData.ls);
+        this.#context.uniform1f(program.lights[index].intensity, lightData.intensity);
+        this.#context.uniform1i(program.lights[index].enabled, lightData.enabled);
+    }
+
+    #setShininess(value) {
+        this.#context.uniform1f(
+            this.#programs[this.#loadedProgram].shininess,
+            value
         );
+    }
+
+    #setTexture(textureIndex, textureUnit) {
+        if (textureIndex < 0 || textureIndex >= this.#textureCount) {
+            throw "Textura inexistent";
+        }
+
+        this.#context.activeTexture(this.#context.TEXTURE0 + textureUnit);
+        this.#context.bindTexture(this.#context.TEXTURE_2D, this.#textures[textureIndex]);
+        this.#context.uniform1i(this.#programs[this.#loadedProgram].textureSampler, textureUnit);
+    }
+
+    #setUseTexture(use) {
+        this.#context.uniform1i(this.#programs[this.#loadedProgram].useTexture, use);
     }
 
 	#initMeshData(model) {
@@ -243,7 +304,7 @@ class Renderer {
 
     #useProgram(index) {
         if (index < 0 || index >= this.#programCount) {
-            throw "El programa de shaders no existeix";
+            throw "Programa de shaders inexistent";
         }
         else if (index === this.#loadedProgram) {
             return;
@@ -284,19 +345,38 @@ class Renderer {
         this.#context.deleteShader(vertexShader);
         this.#context.deleteShader(fragmentShader);
 
-		program.vertexPositionAttr = this.#context.getAttribLocation(program, "vertexPosition");
-        program.vertexNormalAttr = this.#context.getAttribLocation(program, "vertexNormal");
-        program.vertexTextureCoordsAttr = this.#context.getAttribLocation(program, "vertexTextureCoords");
+        this.#getProgramAttributes(program);
+        this.#getProgramUniforms(program);
 
+        return program;
+    }
+
+    #getProgramAttributes(program) {
         program.vertexPositionAttr = this.#context.getAttribLocation(program, "vertexPosition");
         program.vertexNormalAttr = this.#context.getAttribLocation(program, "vertexNormal");
         program.vertexTextureCoordsAttr = this.#context.getAttribLocation(program, "vertexTextureCoords");
+    }
+
+    #getProgramUniforms(program) {
         program.modelViewMatrix = this.#context.getUniformLocation(program, "modelViewMatrix");
         program.projectionMatrix = this.#context.getUniformLocation(program, "projectionMatrix");
         program.normalMatrix = this.#context.getUniformLocation(program, "normalMatrix");
-        program.objectColor = this.#context.getUniformLocation(program, "objectColor");
 
-        return program;
+        program.objectColor = this.#context.getUniformLocation(program, "objectColor");
+        program.shininess = this.#context.getUniformLocation(program, "shininess");
+        program.lights = [];
+        for (let i = 0; i < Renderer.TOTAL_LIGHTS; i++) {
+            program.lights.push({
+                position: this.#context.getUniformLocation(program, `lights[${i}].position`),
+                la: this.#context.getUniformLocation(program, `lights[${i}].la`),
+                ld: this.#context.getUniformLocation(program, `lights[${i}].ld`),
+                ls: this.#context.getUniformLocation(program, `lights[${i}].ls`),
+                intensity: this.#context.getUniformLocation(program, `lights[${i}].intensity`),
+                enabled: this.#context.getUniformLocation(program, `lights[${i}].enabled`)
+            });
+        }
+        program.textureSampler = this.#context.getUniformLocation(program, "textureSampler");
+        program.useTexture = this.#context.getUniformLocation(program, "useTexture");
     }
 
     /**

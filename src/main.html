@@ -18,9 +18,12 @@
     <script src="renderer.js"></script>
     <script src="scene.js"></script>
     <script src="models/primitives.js"></script>
-    <script src="models/kevin.js"></script>
-    <script src="models/shrek_wazowski.js"></script>
+    <script src="models/street.js"></script>
     <script src="models/draven.js"></script>
+    <script src="models/garen.js"></script>
+    <script src="models/illaoi.js"></script>
+    <script src="models/braum.js"></script>
+    <script src="models/gragas.js"></script>
 
     <script id="objectVertexShader" type="x-shader/x-vertex">#version 300 es
         uniform mat4 modelViewMatrix;
@@ -31,33 +34,80 @@
         in vec3 vertexNormal;
         in vec2 vertexTextureCoords;
 
+        out vec3 fragmentEyeCoordinates;
         out vec3 fragmentNormal;
         out vec2 fragmentTextureCoords;
 
         void main() {
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+            vec4 eyeCoordinates = modelViewMatrix * vec4(vertexPosition, 1.0);
             fragmentNormal = normalize(normalMatrix * vertexNormal);
             fragmentTextureCoords = vertexTextureCoords;
+            fragmentEyeCoordinates = vec3(eyeCoordinates);
+            gl_Position = projectionMatrix * eyeCoordinates;
         }
     </script>
 
     <script id="objectFragmentShader" type="x-shader/x-fragment">#version 300 es
         precision mediump float;
+        struct LightData {
+            vec3 position;
+            vec3 la;
+            vec3 ld;
+            vec3 ls;
+            float intensity;
+            bool enabled;
+        };
 
         uniform vec3 objectColor;
+        uniform float shininess;
+        uniform LightData lights[3];
+        uniform sampler2D textureSampler;
+        uniform bool useTexture;
 
+        in vec3 fragmentEyeCoordinates;
         in vec3 fragmentNormal;
         in vec2 fragmentTextureCoords;
 
         out vec4 fragmentColor;
 
-        void main() {
-            vec3 lightDirection = normalize(vec3(1.0, 1.0, 0.0));
-            float diff = max(dot(fragmentNormal, lightDirection), 0.0);
-            vec3 ambient = vec3(0.4, 0.4, 0.4);
-            vec3 diffuse = vec3(0.9, 0.9, 0.9) * diff;
+        vec3 phong(vec3 normal, vec3 fragmentPos, LightData light, float shininess) {
+            vec3 ambient = light.la;
 
-            vec3 color = objectColor * (ambient + diffuse);
+            if (!light.enabled) {
+                return ambient;
+            }
+
+            vec3 lightDirection = normalize(light.position - fragmentPos);
+            vec3 viewDirection = normalize(-fragmentPos);
+            vec3 reflectDirection = reflect(-lightDirection, normal);
+            float diff = max(dot(normal, lightDirection), 0.0);
+            float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), shininess);
+
+            vec3 diffuse = light.ld * diff;
+            vec3 specular = light.ls * spec;
+            return (ambient + diffuse + specular) * light.intensity;
+        }
+
+        void main() {
+            vec3 lightColor = vec3(0.0, 0.0, 0.0);
+
+            for (int i = 0; i < 3; i++) {
+                lightColor += phong(
+                    fragmentNormal,
+                    fragmentEyeCoordinates,
+                    lights[i],
+                    shininess
+                );
+            }
+
+            vec3 color;
+            if (useTexture) {
+                vec4 textureColor = texture(textureSampler, fragmentTextureCoords);
+                color = textureColor.rgb * lightColor;
+            }
+            else {
+                color = objectColor * lightColor;
+            }
             fragmentColor = vec4(color, 1.0);
         }
     </script>
@@ -65,25 +115,71 @@
     <script id="toonFragmentShader" type="x-shader/x-fragment">#version 300 es
         precision mediump float;
 
-        uniform vec3 objectColor;
+        struct LightData {
+            vec3 position;
+            vec3 la;
+            vec3 ld;
+            vec3 ls;
+            float intensity;
+            bool enabled;
+        };
 
+        uniform vec3 objectColor;
+        uniform LightData lights[3];
+        uniform float shininess;
+        uniform sampler2D textureSampler;
+        uniform bool useTexture;
+
+        in vec3 fragmentEyeCoordinates;
         in vec3 fragmentNormal;
         in vec2 fragmentTextureCoords;
 
         out vec4 fragmentColor;
 
-        vec3 toonShading(vec3 normal) {
-            vec3 lightDirection = normalize(vec3(1.0, 1.0, 0.0));
-            float diff = max(dot(normal, lightDirection), 0.0);
-            float levels = 3.0;
-            float scaleFactor = 1.0/levels;
-            vec3 diffuse = ceil(diff * levels) * scaleFactor * lightDirection;
+        vec3 toonShading(vec3 normal, vec3 fragmentPos, LightData light, float shininess) {
+            vec3 ambient = light.la;
 
-            return objectColor * diffuse;
+            if (!light.enabled) {
+                return ambient;
+            }
+
+            vec3 lightDirection = normalize(light.position - fragmentPos);
+            vec3 viewDirection = normalize(-fragmentPos);
+            vec3 reflectDirection = reflect(-lightDirection, normal);
+            float diff = max(dot(normal, lightDirection), 0.0);
+            float spec = pow(max(dot(viewDirection, reflectDirection), 0.0), shininess);
+
+            float levels = 5.0;
+            float scaleFactor = 1.0 / levels;
+            float toonDiff = ceil(diff * levels) * scaleFactor;
+            float toonSpec = ceil(spec * levels) * scaleFactor;
+
+            vec3 diffuse = light.ld * toonDiff;
+            vec3 specular = light.ls * toonSpec;
+            return (ambient + diffuse + specular) * light.intensity;
         }
 
         void main() {
-            fragmentColor = vec4(toonShading(fragmentNormal), 1.0);
+            vec3 lightColor = vec3(0.0, 0.0, 0.0);
+
+            for (int i = 0; i < 3; i++) {
+                lightColor += toonShading(
+                    fragmentNormal,
+                    fragmentEyeCoordinates,
+                    lights[i],
+                    shininess
+                );
+            }
+
+            vec3 color;
+            if (useTexture) {
+                vec4 textureColor = texture(textureSampler, fragmentTextureCoords);
+                color = textureColor.rgb * lightColor;
+            }
+            else {
+                color = objectColor * lightColor;
+            }
+            fragmentColor = vec4(color, 1.0);
         }
     </script>
 </head>
@@ -91,32 +187,39 @@
 <body>
 <div id="gameLayout">
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="1280" height="720" style="border: 1px solid black">
-            El navegador no suporta HTML5.
-        </canvas>
-        <div id="info">
-            <div id="playerCoordinates">
-                <span>X: <span id="playerX">0.00</span></span>
-                <span>Y: <span id="playerY">0.00</span></span>
-                <span>Z: <span id="playerZ">0.00</span></span>
+
+        <div id="canvasContainer">
+            <canvas id="gameCanvas" width="1280" height="720" style="border: 1px solid black">
+                El navegador no suporta HTML5.
+            </canvas>
+            <div id="info">
+                <div id="playerCoordinates">
+                    <span>X: <span id="playerX">0.00</span></span>
+                    <span>Y: <span id="playerY">0.00</span></span>
+                    <span>Z: <span id="playerZ">0.00</span></span>
+                </div>
             </div>
         </div>
+
         <div id="settings">
-            <div class="slider-container">
-                <label for="sensitivitySlider">Sensibilitat: <span id="sensitivityValue">1.0</span></label>
-                <input type="range" id="sensitivitySlider" min="0.1" max="5.0" step="0.1" value="1.0" disabled>
-            </div>
+
             <div class="slider-container">
                 <label for="framerateSlider">FPS: <span id="framerateValue">60</span></label>
                 <input type="range" id="framerateSlider" min="30" max="240" step="30" value="60" disabled>
             </div>
+            <div class="slider-container">
+                <label for="sensitivitySlider">Sensibilitat: <span id="sensitivityValue">1.0</span></label>
+                <input type="range" id="sensitivitySlider" min="0.1" max="5.0" step="0.1" value="1.0" disabled>
+            </div>
+
             <div class="shader-option">
                 <span>Shader:</span>
-                <input type="radio" id="shaderNormal" name="shaderMode" value="normal" checked disabled>
-                <label for="shaderNormal">Normal</label>
-                <input type="radio" id="shaderToon" name="shaderMode" value="toon" disabled>
-                <label for="shaderToon">Toon</label>
+                <input type="radio" id="defaultShader" name="shaderMode" value="normal" checked disabled>
+                <label for="defaultShader">Default</label>
+                <input type="radio" id="toonShader" name="shaderMode" value="toon" disabled>
+                <label for="toonShader">Toon</label>
             </div>
+
             <div class="mode-option">
                 <span>Mode:</span>
                 <input type="radio" id="modeSolid" name="visualizationMode" value="solid" checked disabled>
@@ -124,7 +227,55 @@
                 <input type="radio" id="modeWireframe" name="visualizationMode" value="wireframe" disabled>
                 <label for="modeWireframe">Wireframe</label>
             </div>
+
+            <div class="mode-option">
+                <span>Projecció:</span>
+                <input type="radio" id="projectionPerspective" name="projectionMode" value="perspective" checked disabled>
+                <label for="projectionPerspective">Perspectiva</label>
+                <input type="radio" id="projectionOrthographic" name="projectionMode" value="orthographic" disabled>
+                <label for="projectionOrthographic">Ortogonal</label>
+            </div>
+
+            <div class="light-selector-container">
+                <label for="lightSelector">Llum:</label>
+                <select id="lightSelector" disabled>
+                    <option value="0">Llum 1</option>
+                    <option value="1">Llum 2</option>
+                    <option value="2">Llum 3</option>
+                </select>
+            </div>
+            <div class="light-checkbox-container">
+                <input type="checkbox" id="lightEnabled" disabled>
+                <label for="lightEnabled">Activada</label>
+            </div>
+
+            <div class="light-position-container">
+                <label>Posició:</label>
+                <div class="light-position-inputs">
+                    <input type="number" id="lightPosX" step="0.1" disabled placeholder="X">
+                    <input type="number" id="lightPosY" step="0.1" disabled placeholder="Y">
+                    <input type="number" id="lightPosZ" step="0.1" disabled placeholder="Z">
+                </div>
+            </div>
+            <div class="light-color-container">
+                <label>Ambient:</label>
+                <input type="color" id="lightLa" disabled>
+            </div>
+            <div class="light-color-container">
+                <label>Difús:</label>
+                <input type="color" id="lightLd" disabled>
+            </div>
+            <div class="light-color-container">
+                <label>Especular:</label>
+                <input type="color" id="lightLs" disabled>
+            </div>
+            <div class="slider-container">
+                <label for="lightIntensity">Intensitat: <span id="lightIntensityValue">1.0</span></label>
+                <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="1.0" disabled>
+            </div>
+
         </div>
+
     </div>
 </div>
 </body>

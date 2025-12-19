@@ -16,7 +16,7 @@ function createCircle(segments = 32) {
         indexs.push(0, i+1, i+2);
     }
 
-    return {vertexs, textureCoords, indexs};
+    return {vertexs, textureCoords, indices: indexs};
 }
 
 function createGroundCube(width = 10.0, depth = 10.0, height = 0.1) {
@@ -24,7 +24,7 @@ function createGroundCube(width = 10.0, depth = 10.0, height = 0.1) {
     const d = depth / 2;
     const h = height / 2;
 
-    const vertexs = [
+    const vertices = [
         // Cara inferior.
        -w, -h, -d,
         w, -h, -d,
@@ -52,7 +52,7 @@ function createGroundCube(width = 10.0, depth = 10.0, height = 0.1) {
         0.0,  1.0,  0.0,
     ];
 
-    const textureCoords = [
+    const textures = [
         // Cara inferior.
         0.0, 0.0,
         1.0, 0.0,
@@ -61,12 +61,12 @@ function createGroundCube(width = 10.0, depth = 10.0, height = 0.1) {
 
         // Cara superior.
         0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0,
+        10.0, 0.0,
+        10.0, 10.0,
+        0.0, 10.0,
     ];
 
-    const indexs = [
+    const indices = [
         // Cara superior (Y+).
         4, 7, 6, 6, 5, 4,
 
@@ -87,18 +87,18 @@ function createGroundCube(width = 10.0, depth = 10.0, height = 0.1) {
     ];
 
     return {
-        vertexs,
+        vertices,
         normals,
-        textureCoords,
-        indexs
+        textures,
+        indices
     };
 }
 
 function createSphere(radius = 0.5, segments = 16) {
-    const vertexs = [];
+    const vertices = [];
     const normals = [];
-    const textureCoords = [];
-    const indexs = [];
+    const textures = [];
+    const indices = [];
 
     for (let lat = 0; lat <= segments; lat++) {
         const theta = lat * Math.PI / segments;
@@ -114,9 +114,9 @@ function createSphere(radius = 0.5, segments = 16) {
             const y = cosTheta;
             const z = sinPhi * sinTheta;
 
-            vertexs.push(radius * x, radius * y, radius * z);
+            vertices.push(radius * x, radius * y, radius * z);
             normals.push(x, y, z);
-            textureCoords.push(lon / segments, lat / segments);
+            textures.push(lon / segments, lat / segments);
         }
     }
 
@@ -125,15 +125,15 @@ function createSphere(radius = 0.5, segments = 16) {
             const first = lat * (segments + 1) + lon;
             const second = first + segments + 1;
 
-            indexs.push(first, second, first + 1);
-            indexs.push(second, second + 1, first + 1);
+            indices.push(first, second, first + 1);
+            indices.push(second, second + 1, first + 1);
         }
     }
 
     return {
-        vertexs,
+        vertices,
         normals,
-        textureCoords,
-        indexs
+        textures,
+        indices
     };
 }
