@@ -40,8 +40,9 @@ function changeTextureScale(event) {
 
 function setupProceduralTextureSettings() {
     const scaleSlider = document.getElementById("scaleSlider");
+	const scaleValue = document.getElementById("scaleValue");
 
-    scaleSlider.value = scene.textureScale();
+    scaleValue.textContent = scene.textureScale().toFixed(1);
     scaleSlider.addEventListener("input", changeTextureScale);
     scaleSlider.disabled = false;
 }
@@ -209,16 +210,18 @@ function setupShaderSettings() {
 
 function setupSensitivitySettings() {
     const sensitivitySlider = document.getElementById("sensitivitySlider");
-
-    sensitivitySlider.value = scene.sensitivity();
+	const sensitivityValue = document.getElementById("sensitivityValue");
+	
+	sensitivityValue.textContent = scene.sensitivity().toFixed(1);
     sensitivitySlider.addEventListener("input", changeSensitivity);
     sensitivitySlider.disabled = false;
 }
 
 function setupFramerateSettings() {
     const framerateSlider = document.getElementById("framerateSlider");
-
-    framerateSlider.value = scene.framerate();
+	const framerateValue = document.getElementById("framerateValue");
+	
+	framerateValue.textContent = scene.framerate().toFixed();
     framerateSlider.addEventListener("input", changeFramerate);
     framerateSlider.disabled = false;
 }
